@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebM Audio Test</title>
+</head>
+<body>
+    <button id="record">Record</button>
+    <button id="stop" disabled>Stop</button>
+    <a id="download" style="display: none;">Download WebM</a>
+    <a id="staticDownload" style="display: none;">Static Download</a>
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById("record").addEventListener("click", async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+                mediaRecorder.ondataavailable = event => {
+                    console.log("ondataavailable called");
+                    if (event.data.size > 0) {
+                        console.log("Chunk size:", event.data.size);
+                        audioChunks.push(event.data);
+                    } else {
+                        console.log("Empty chunk received");
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    console.log("MediaRecorder stopped");
+                    console.log("Audio Chunks:", audioChunks); // Log audioChunks
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    console.log("audioBlob size:", audioBlob.size);
+                    const audioUrl = window.URL.createObjectURL(audioBlob);
+                    const downloadLink = document.getElementById("download");
+                    downloadLink.href = audioUrl;
+                    downloadLink.style.display = 'block';
+                    audioChunks = [];
+                };
+
+                mediaRecorder.start();
+                console.log("MediaRecorder state:", mediaRecorder.state);
+                document.getElementById("record").disabled = true;
+                document.getElementById("stop").disabled = false;
+            } catch (error) {
+                console.error("getUserMedia error:", error);
+            }
+        });
+
+        document.getElementById("stop").addEventListener("click", () => {
+            mediaRecorder.stop();
+            console.log("MediaRecorder state:", mediaRecorder.state);
+            document.getElementById("record").disabled = false;
+            document.getElementById("stop").disabled = true;
+        });
+
+        // Static Blob Test
+        const staticData = new Uint8Array([1, 2, 3, 4, 5]);
+        const staticBlob = new Blob([staticData], { type: 'application/octet-stream' });
+        const staticUrl = window.URL.createObjectURL(staticBlob);
+        const staticDownloadLink = document.getElementById("staticDownload");
+        staticDownloadLink.href = staticUrl;
+        staticDownloadLink.style.display = 'block';
+    </script>
+</body>
+</html>
